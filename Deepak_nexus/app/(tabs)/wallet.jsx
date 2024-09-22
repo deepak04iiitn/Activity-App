@@ -1,184 +1,225 @@
-import React from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
+import { getFirestore, collection, query, where, getDocs, orderBy, doc, onSnapshot } from 'firebase/firestore';
+import { getAuth } from 'firebase/auth';
 
-export default function Wallet() {
+export default function Wallet({ navigation }) {
+  const [transactions, setTransactions] = useState([]);
+  const [balance, setBalance] = useState(0);
 
-  const renderTransactionItem = (transaction) => (
+  useEffect(() => {
+    const auth = getAuth();
+    const user = auth.currentUser;
 
-    <View style={styles.transactionItem} key={transaction.id}>
+    if (!user) {
+      console.error('No user logged in');
+      return;
+    }
 
-      <View style={styles.transactionIcon}>
+    const db = getFirestore();
 
-        <Ionicons name={transaction.type === 'credit' ? 'add-circle-outline' : 'remove-circle-outline'} size={24} color={transaction.type === 'credit' ? 'green' : 'red'} />
+    // Listen for balance changes
+    const unsubscribeBalance = onSnapshot(doc(db, 'users', user.uid), (doc) => {
+      if (doc.exists()) {
+        setBalance(doc.data().balance || 0);
+      }
+    });
 
-      </View>
+    // Set up listener for real-time updates on transactions
+    const transactionsRef = collection(db, 'transactions');
+    const q = query(
+      transactionsRef,
+      where('userId', '==', user.uid),
+      orderBy('date', 'desc')
+    );
 
+    const unsubscribeTransactions = onSnapshot(q, (querySnapshot) => {
+      const updatedTransactions = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      setTransactions(updatedTransactions);
+    });
+
+    // Clean up listeners on component unmount
+    return () => {
+      unsubscribeBalance();
+      unsubscribeTransactions();
+    };
+  }, []);
+
+  const TransactionCard = ({ transaction }) => (
+    <View style={styles.transactionCard}>
       <View style={styles.transactionInfo}>
-
-        <Text style={styles.transactionTitle}>{transaction.title}</Text>
-
-        <Text style={styles.transactionDate}>{transaction.date}</Text>
-
+        <Text style={styles.transactionAmount}>
+          {transaction.type === 'credit' ? '+' : '-'} ₹{transaction.amount.toFixed(2)}
+        </Text>
+        <Text style={styles.transactionDate}>{new Date(transaction.date).toLocaleDateString()}</Text>
+        {transaction.activityName && (
+          <Text style={styles.transactionActivity}>Activity: {transaction.activityName}</Text>
+        )}
       </View>
-
-      <Text style={[styles.transactionAmount, { color: transaction.type === 'credit' ? 'green' : 'red' }]}>
-
-        {transaction.type === 'credit' ? '+' : '-'} ₹{transaction.amount}
-
+      <Text style={[
+        styles.transactionStatus,
+        { color: transaction.status === 'completed' ? 'green' : 'orange' }
+      ]}>
+        {transaction.status}
       </Text>
-
     </View>
   );
 
-  const transactions = [
-    { id: 1, title: 'Adult Fitness Swim', date: '22 Sep 2024', amount: '799', type: 'debit' },
-    { id: 2, title: 'Added Funds', date: '20 Sep 2024', amount: '2000', type: 'credit' },
-    { id: 3, title: 'Yoga Class', date: '18 Sep 2024', amount: '500', type: 'debit' },
-  ];
-
   return (
-
     <SafeAreaView style={styles.container}>
-
       <View style={styles.header}>
-
         <Text style={styles.headerTitle}>Wallet</Text>
-
-        <TouchableOpacity>
-
-          <Ionicons name="ellipsis-horizontal" size={24} color="black" />
-
-        </TouchableOpacity>
-
       </View>
-
-      <View style={styles.balanceCard}>
-
+      
+      <View style={styles.balanceContainer}>
         <Text style={styles.balanceTitle}>Current Balance</Text>
-
-        <Text style={styles.balanceAmount}>₹3,500</Text>
-
-        <TouchableOpacity style={styles.addFundsButton}>
-
-          <Text style={styles.addFundsButtonText}>Add Funds</Text>
-
-        </TouchableOpacity>
-
+        <Text style={styles.balanceAmount}>₹{balance.toFixed(2)}</Text>
       </View>
 
-      <View style={styles.transactionsSection}>
-
-        <Text style={styles.sectionTitle}>Recent Transactions</Text>
-
-        <ScrollView>
-          {transactions.map(renderTransactionItem)}
-        </ScrollView>
-
-      </View>
-
+      <ScrollView style={styles.transactionsList}>
+        {transactions.length > 0 ? (
+          transactions.map((transaction) => (
+            <TransactionCard key={transaction.id} transaction={transaction} />
+          ))
+        ) : (
+          <Text style={styles.noTransactionsText}>No transactions available</Text>
+        )}
+      </ScrollView>
     </SafeAreaView>
-
   );
 }
 
 const styles = StyleSheet.create({
-    
+
+  transactionActivity: {
+    fontSize: 14,
+    color: '#555',
+    marginTop: 4,
+  },
   container: {
     flex: 1,
     backgroundColor: '#F5F5F5',
   },
-  
   header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
     padding: 16,
     borderBottomWidth: 1,
     borderBottomColor: '#E0E0E0',
   },
-  
   headerTitle: {
     fontSize: 24,
     fontWeight: 'bold',
   },
-  
-  balanceCard: {
+  balanceContainer: {
     backgroundColor: '#007AFF',
-    padding: 24,
-    margin: 16,
-    borderRadius: 12,
+    padding: 16,
     alignItems: 'center',
   },
-  
   balanceTitle: {
-    color: 'white',
+    color: '#FFF',
     fontSize: 16,
   },
-  
   balanceAmount: {
-    color: 'white',
-    fontSize: 36,
+    color: '#FFF',
+    fontSize: 32,
     fontWeight: 'bold',
-    marginVertical: 8,
-  },
-  
-  addFundsButton: {
-    backgroundColor: 'white',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
     marginTop: 8,
   },
-  
-  addFundsButtonText: {
-    color: '#007AFF',
-    fontWeight: 'bold',
-  },
-  
-  transactionsSection: {
-    flex: 1,
+  transactionsList: {
     padding: 16,
   },
-  
-  sectionTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    marginBottom: 16,
-  },
-  
-  transactionItem: {
+  transactionCard: {
     flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: 'white',
+    backgroundColor: '#FFF',
     borderRadius: 8,
     padding: 16,
-    marginBottom: 12,
+    marginBottom: 16,
   },
-  
-  transactionIcon: {
-    marginRight: 16,
-  },
-  
   transactionInfo: {
     flex: 1,
   },
-  
-  transactionTitle: {
-    fontSize: 16,
+  transactionAmount: {
+    fontSize: 18,
     fontWeight: 'bold',
   },
-  
   transactionDate: {
     fontSize: 14,
     color: '#888',
     marginTop: 4,
   },
-  
-  transactionAmount: {
+  transactionStatus: {
+    fontSize: 14,
+    fontWeight: 'bold',
+  },
+  noTransactionsText: {
+    textAlign: 'center',
+    marginTop: 20,
+    fontSize: 16,
+    color: '#888',
+  },
+  addFundsButton: {
+    backgroundColor: '#007AFF',
+    borderRadius: 8,
+    padding: 16,
+    margin: 16,
+    alignItems: 'center',
+  },
+  addFundsButtonText: {
+    color: 'white',
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+  modalContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  },
+  modalContent: {
+    backgroundColor: 'white',
+    borderRadius: 8,
+    padding: 16,
+    width: '80%',
+    alignItems: 'center',
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginBottom: 16,
+  },
+  input: {
+    backgroundColor: '#F0F0F0',
+    borderRadius: 8,
+    padding: 12,
+    fontSize: 16,
+    width: '100%',
+    marginBottom: 16,
+  },
+  modalButton: {
+    backgroundColor: '#007AFF',
+    borderRadius: 8,
+    padding: 12,
+    width: '100%',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  modalButtonText: {
+    color: 'white',
     fontSize: 16,
     fontWeight: 'bold',
   },
-  
+  modalCancelButton: {
+    backgroundColor: '#F0F0F0',
+    borderRadius: 8,
+    padding: 12,
+    width: '100%',
+    alignItems: 'center',
+  },
+  modalCancelButtonText: {
+    color: '#007AFF',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
 });

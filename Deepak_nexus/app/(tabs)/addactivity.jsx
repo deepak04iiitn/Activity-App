@@ -1,11 +1,14 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import * as ImagePicker from 'expo-image-picker';
+import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { getFirestore, collection, addDoc } from 'firebase/firestore';
+import { getAuth } from 'firebase/auth';
 
-export default function AddActivity() {
-
+export default function AddActivity({ navigation }) {
   const [activityName, setActivityName] = useState('');
   const [instructor, setInstructor] = useState('');
   const [price, setPrice] = useState('');
@@ -16,57 +19,149 @@ export default function AddActivity() {
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showStartTimePicker, setShowStartTimePicker] = useState(false);
   const [showEndTimePicker, setShowEndTimePicker] = useState(false);
+  const [image, setImage] = useState(null);
 
   const onDateChange = (event, selectedDate) => {
-
     const currentDate = selectedDate || date;
     setShowDatePicker(false);
     setDate(currentDate);
-
   };
 
   const onStartTimeChange = (event, selectedTime) => {
-
     const currentTime = selectedTime || startTime;
     setShowStartTimePicker(false);
     setStartTime(currentTime);
-
   };
 
   const onEndTimeChange = (event, selectedTime) => {
-
     const currentTime = selectedTime || endTime;
     setShowEndTimePicker(false);
     setEndTime(currentTime);
-
   };
 
-  const handleAddActivity = () => {
-    // Implement the logic to add the activity
-    console.log('Activity added:', { activityName, instructor, price, capacity, date, startTime, endTime });
-    // You would typically send this data to your backend or store it locally
+  const pickImage = async () => {
+    let result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [4, 3],
+      quality: 1,
+    });
+
+    if (!result.cancelled) {
+      const selectedImageUri = result.assets ? result.assets[0].uri : result.uri;
+      setImage(selectedImageUri);
+    }
   };
+
+  const uploadImage = async () => {
+    if (!image) return null;
+
+    try {
+      const storage = getStorage();
+      const filename = image.split('/').pop();
+      const storageRef = ref(storage, `activity_images/${filename}`);
+
+      const response = await fetch(image);
+      const blob = await response.blob();
+
+      await uploadBytes(storageRef, blob);
+      const downloadUrl = await getDownloadURL(storageRef);
+
+      console.log('Image uploaded successfully:', downloadUrl);
+      return downloadUrl;
+    } catch (error) {
+      console.error('Error uploading image: ', error);
+      return null;
+    }
+  };
+
+  const handleAddActivity = async () => {
+    const auth = getAuth();
+    const user = auth.currentUser;
+  
+    if (!user) {
+      console.error('No user logged in');
+      return;
+    }
+  
+    // Upload the image if selected
+    const imageUrl = await uploadImage();
+  
+    const activityData = {
+      name: activityName,
+      instructor,
+      price: parseFloat(price),
+      capacity: parseInt(capacity),
+      date: date.toISOString(),
+      startTime: startTime.toISOString(),
+      endTime: endTime.toISOString(),
+      image: imageUrl,
+      userId: user.uid,
+      currentCapacity: 0, // Initial capacity of the activity
+    };
+  
+    const db = getFirestore();
+  
+    try {
+      // Add the activity document
+      const activityRef = await addDoc(collection(db, 'activities'), activityData);
+  
+      // Update user's wallet balance
+      const userRef = doc(db, 'users', user.uid);
+      await updateDoc(userRef, {
+        balance: increment(parseFloat(price)), // Increment the balance with the price of the activity
+      });
+  
+      // Add a transaction record
+      await addDoc(collection(db, 'transactions'), {
+        userId: user.uid,
+        amount: parseFloat(price),
+        type: 'credit', // Credit transaction since the user is earning money
+        status: 'completed',
+        date: new Date().toISOString(),
+        activityId: activityRef.id, // Reference to the created activity
+        activityName: activityName,
+      });
+  
+      console.log('Activity added successfully and wallet updated');
+  
+      // Clear input fields after successful submission
+      setActivityName('');
+      setInstructor('');
+      setPrice('');
+      setCapacity('');
+      setDate(new Date());
+      setStartTime(new Date());
+      setEndTime(new Date());
+      setImage(null);
+  
+      // Show success message
+      Alert.alert(
+        'Success',
+        `Activity added successfully and ₹${price} has been added to your wallet.`,
+        [{ text: 'OK', onPress: () => navigation.navigate('Activity') }]
+      );
+    } catch (error) {
+      console.error('Error adding activity: ', error);
+      Alert.alert('Error', 'Failed to add activity. Please try again.');
+    }
+  };
+  
+
 
   return (
-
     <SafeAreaView style={styles.container}>
-
       <View style={styles.header}>
-
-        <TouchableOpacity>
+        <TouchableOpacity onPress={() => navigation.goBack()}>
           <Ionicons name="arrow-back" size={24} color="black" />
         </TouchableOpacity>
-
         <Text style={styles.headerTitle}>Add Activity</Text>
-
-        <TouchableOpacity>
+        <TouchableOpacity onPress={handleAddActivity}>
           <Text style={styles.saveButton}>Save</Text>
         </TouchableOpacity>
-
       </View>
 
       <ScrollView style={styles.form}>
-
         <TextInput
           style={styles.input}
           placeholder="Activity Name"
@@ -98,9 +193,7 @@ export default function AddActivity() {
         />
 
         <TouchableOpacity style={styles.dateInput} onPress={() => setShowDatePicker(true)}>
-
           <Text>{date.toDateString()}</Text>
-
         </TouchableOpacity>
 
         {showDatePicker && (
@@ -113,9 +206,7 @@ export default function AddActivity() {
         )}
 
         <TouchableOpacity style={styles.dateInput} onPress={() => setShowStartTimePicker(true)}>
-
           <Text>{startTime.toLocaleTimeString()}</Text>
-
         </TouchableOpacity>
 
         {showStartTimePicker && (
@@ -129,9 +220,7 @@ export default function AddActivity() {
         )}
 
         <TouchableOpacity style={styles.dateInput} onPress={() => setShowEndTimePicker(true)}>
-
           <Text>{endTime.toLocaleTimeString()}</Text>
-
         </TouchableOpacity>
 
         {showEndTimePicker && (
@@ -144,25 +233,25 @@ export default function AddActivity() {
           />
         )}
 
-        <TouchableOpacity style={styles.addButton} onPress={handleAddActivity}>
-
-          <Text style={styles.addButtonText}>Add Activity</Text>
-
+        <TouchableOpacity style={styles.imageUploadButton} onPress={pickImage}>
+          <Text style={styles.imageUploadButtonText}>Upload Image</Text>
         </TouchableOpacity>
 
-      </ScrollView>
+        {image && <Image source={{ uri: image }} style={styles.previewImage} />}
 
+        <TouchableOpacity style={styles.addButton} onPress={handleAddActivity}>
+          <Text style={styles.addButtonText}>Add Activity</Text>
+        </TouchableOpacity>
+      </ScrollView>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-
   container: {
     flex: 1,
     backgroundColor: '#F5F5F5',
   },
-  
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -171,21 +260,17 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#E0E0E0',
   },
-  
   headerTitle: {
     fontSize: 20,
     fontWeight: 'bold',
   },
-  
   saveButton: {
     color: '#007AFF',
     fontSize: 16,
   },
-  
   form: {
     padding: 16,
   },
-  
   input: {
     backgroundColor: 'white',
     borderRadius: 8,
@@ -193,14 +278,12 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     fontSize: 16,
   },
-  
   dateInput: {
     backgroundColor: 'white',
     borderRadius: 8,
     padding: 12,
     marginBottom: 16,
   },
-  
   addButton: {
     backgroundColor: '#007AFF',
     borderRadius: 8,
@@ -208,11 +291,27 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginTop: 16,
   },
-  
   addButtonText: {
     color: 'white',
     fontSize: 18,
     fontWeight: 'bold',
   },
-  
+  imageUploadButton: {
+    backgroundColor: '#007AFF',
+    borderRadius: 8,
+    padding: 16,
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  imageUploadButtonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  previewImage: {
+    width: '100%',
+    height: 200,
+    borderRadius: 8,
+    marginBottom: 16,
+  },
 });
