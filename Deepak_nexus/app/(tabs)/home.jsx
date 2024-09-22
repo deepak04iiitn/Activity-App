@@ -12,6 +12,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
+import { useRouter } from 'expo-router';
 
 // Get device dimensions
 const { width, height } = Dimensions.get('window');
@@ -22,6 +23,8 @@ export default function Home({ navigation }) {
   const fadeAnim2 = useRef(new Animated.Value(0)).current;
   const fadeAnim3 = useRef(new Animated.Value(0)).current;
   const fadeAnim4 = useRef(new Animated.Value(0)).current;
+
+  const router = useRouter();
 
   useFocusEffect(
     React.useCallback(() => {
@@ -62,7 +65,7 @@ export default function Home({ navigation }) {
       {/* Header Section */}
       <View style={styles.header}>
         <Text style={styles.headerTitle}>ActivityCentre</Text>
-        <TouchableOpacity onPress={() => navigation.navigate('Profile')}>
+        <TouchableOpacity onPress={() => router.push('/profile')}>
           <Ionicons name="person-circle-outline" size={30} color="#007AFF" />
         </TouchableOpacity>
       </View>
@@ -99,7 +102,7 @@ export default function Home({ navigation }) {
         <View style={styles.section}>
           <Animated.View style={{ opacity: fadeAnim3, flexDirection: 'row-reverse', alignItems: 'center' }}>
             <Image
-              source={require('../../assets/images/activity.jpg')} // Replace with your image path
+              source={require('../../assets/images/wallet.jpg')} // Replace with your image path
               style={styles.featureImage}
             />
             <View style={styles.featureTextContainer}>

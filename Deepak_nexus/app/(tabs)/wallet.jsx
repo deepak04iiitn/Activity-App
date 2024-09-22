@@ -1,225 +1,282 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Alert } from 'react-native';
+import { View, Text, StyleSheet, Alert, RefreshControl, ScrollView, TouchableOpacity, Modal, TextInput } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { getFirestore, collection, query, where, getDocs, orderBy, doc, onSnapshot } from 'firebase/firestore';
-import { getAuth } from 'firebase/auth';
+import { getFirestore, doc, onSnapshot, updateDoc, increment } from 'firebase/firestore';
+import { getAuth, onAuthStateChanged } from 'firebase/auth';
+import { useNavigation } from '@react-navigation/native'; // Import useNavigation
+import Ionicons from '@expo/vector-icons/Ionicons'; // Import Ionicons
 
-export default function Wallet({ navigation }) {
-  const [transactions, setTransactions] = useState([]);
+export default function Wallet() {
+
   const [balance, setBalance] = useState(0);
+  const [user, setUser] = useState(null);
+  const [refreshing, setRefreshing] = useState(false);
+  const [modalVisible, setModalVisible] = useState(false);
+  const [withdrawAmount, setWithdrawAmount] = useState('');
+
+  const navigation = useNavigation(); // Use the navigation hook
 
   useEffect(() => {
     const auth = getAuth();
-    const user = auth.currentUser;
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      setUser(user);
+    });
 
-    if (!user) {
-      console.error('No user logged in');
+    return () => unsubscribe();
+  }, []);
+
+  useEffect(() => {
+    let unsubscribeBalance;
+
+    if (user) {
+      const db = getFirestore();
+      const userRef = doc(db, 'users', user.uid);
+
+      unsubscribeBalance = onSnapshot(userRef, (doc) => {
+        if (doc.exists()) {
+          const userData = doc.data();
+          setBalance(userData.balance || 0);
+        } else {
+          console.error('User document not found');
+        }
+      }, (error) => {
+        console.error('Error fetching user balance:', error);
+        Alert.alert('Error', 'Failed to fetch wallet balance. Please try again.');
+      });
+    }
+
+    return () => {
+      if (unsubscribeBalance) {
+        unsubscribeBalance();
+      }
+    };
+  }, [user]);
+
+  const onRefresh = () => {
+    setRefreshing(true);
+    setTimeout(() => setRefreshing(false), 1000);
+  };
+
+  const handleWithdraw = async () => {
+    const amount = parseFloat(withdrawAmount);
+    if (isNaN(amount) || amount <= 0) {
+      Alert.alert('Invalid Amount', 'Please enter a valid amount to withdraw.');
+      return;
+    }
+
+    if (amount > balance) {
+      Alert.alert('Insufficient Balance', 'You do not have enough balance to withdraw this amount.');
       return;
     }
 
     const db = getFirestore();
+    const userRef = doc(db, 'users', user.uid);
 
-    // Listen for balance changes
-    const unsubscribeBalance = onSnapshot(doc(db, 'users', user.uid), (doc) => {
-      if (doc.exists()) {
-        setBalance(doc.data().balance || 0);
-      }
-    });
+    try {
+      await updateDoc(userRef, {
+        balance: increment(-amount)
+      });
 
-    // Set up listener for real-time updates on transactions
-    const transactionsRef = collection(db, 'transactions');
-    const q = query(
-      transactionsRef,
-      where('userId', '==', user.uid),
-      orderBy('date', 'desc')
-    );
-
-    const unsubscribeTransactions = onSnapshot(q, (querySnapshot) => {
-      const updatedTransactions = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      setTransactions(updatedTransactions);
-    });
-
-    // Clean up listeners on component unmount
-    return () => {
-      unsubscribeBalance();
-      unsubscribeTransactions();
-    };
-  }, []);
-
-  const TransactionCard = ({ transaction }) => (
-    <View style={styles.transactionCard}>
-      <View style={styles.transactionInfo}>
-        <Text style={styles.transactionAmount}>
-          {transaction.type === 'credit' ? '+' : '-'} ₹{transaction.amount.toFixed(2)}
-        </Text>
-        <Text style={styles.transactionDate}>{new Date(transaction.date).toLocaleDateString()}</Text>
-        {transaction.activityName && (
-          <Text style={styles.transactionActivity}>Activity: {transaction.activityName}</Text>
-        )}
-      </View>
-      <Text style={[
-        styles.transactionStatus,
-        { color: transaction.status === 'completed' ? 'green' : 'orange' }
-      ]}>
-        {transaction.status}
-      </Text>
-    </View>
-  );
+      setModalVisible(false);
+      setWithdrawAmount('');
+      Alert.alert('Success', `Successfully withdrew ₹${amount.toFixed(2)}`);
+    } catch (error) {
+      console.error('Error withdrawing amount:', error);
+      Alert.alert('Error', 'Failed to process withdrawal. Please try again.');
+    }
+  };
 
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
+        {/* Back arrow */}
+        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+          <Ionicons name="arrow-back" size={24} color="#FFF" />
+        </TouchableOpacity>
         <Text style={styles.headerTitle}>Wallet</Text>
       </View>
-      
-      <View style={styles.balanceContainer}>
-        <Text style={styles.balanceTitle}>Current Balance</Text>
-        <Text style={styles.balanceAmount}>₹{balance.toFixed(2)}</Text>
-      </View>
-
-      <ScrollView style={styles.transactionsList}>
-        {transactions.length > 0 ? (
-          transactions.map((transaction) => (
-            <TransactionCard key={transaction.id} transaction={transaction} />
-          ))
-        ) : (
-          <Text style={styles.noTransactionsText}>No transactions available</Text>
-        )}
+      <ScrollView
+        contentContainerStyle={styles.scrollView}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
+      >
+        <View style={styles.content}>
+          <View style={styles.balanceContainer}>
+            <Text style={styles.balanceTitle}>Current Balance</Text>
+            <Text style={styles.balanceAmount}>₹{balance.toFixed(2)}</Text>
+          </View>
+          <Text style={styles.explanation}>
+            This balance represents the total price of all activities you've created.
+          </Text>
+          <TouchableOpacity style={styles.withdrawButton} onPress={() => setModalVisible(true)}>
+            <Text style={styles.withdrawButtonText}>Withdraw</Text>
+          </TouchableOpacity>
+        </View>
       </ScrollView>
+
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={modalVisible}
+        onRequestClose={() => setModalVisible(!modalVisible)}
+      >
+        <View style={styles.centeredView}>
+          <View style={styles.modalView}>
+            <Text style={styles.modalText}>Enter amount to withdraw:</Text>
+            <TextInput
+              style={styles.input}
+              onChangeText={setWithdrawAmount}
+              value={withdrawAmount}
+              keyboardType="numeric"
+              placeholder="Enter amount"
+            />
+            <View style={styles.modalButtons}>
+              <TouchableOpacity
+                style={[styles.button, styles.buttonClose]}
+                onPress={() => setModalVisible(!modalVisible)}
+              >
+                <Text style={styles.textStyle}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.button, styles.buttonConfirm]}
+                onPress={handleWithdraw}
+              >
+                <Text style={styles.textStyle}>Confirm</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-
-  transactionActivity: {
-    fontSize: 14,
-    color: '#555',
-    marginTop: 4,
-  },
   container: {
     flex: 1,
     backgroundColor: '#F5F5F5',
   },
   header: {
-    padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E0E0E0',
+    backgroundColor: '#007AFF',
+    padding: 20,
+    alignItems: 'center',
+    flexDirection: 'row',
+  },
+  backButton: {
+    position: 'absolute',
+    left: 20,
   },
   headerTitle: {
+    flex: 1,
+    color: '#FFF',
+    fontSize: 20,
+    fontWeight: 'bold',
+    textAlign: 'center',
+  },
+  scrollView: {
+    flexGrow: 1,
+  },
+  content: {
+    flex: 1,
+    justifyContent: 'center',
+    padding: 20,
+    alignItems: 'center',
+  },
+  title: {
     fontSize: 24,
     fontWeight: 'bold',
+    marginBottom: 20,
   },
   balanceContainer: {
     backgroundColor: '#007AFF',
-    padding: 16,
+    padding: 20,
+    borderRadius: 10,
     alignItems: 'center',
+    width: '100%',
+    marginBottom: 20,
   },
   balanceTitle: {
     color: '#FFF',
-    fontSize: 16,
+    fontSize: 18,
+    marginBottom: 10,
   },
   balanceAmount: {
     color: '#FFF',
-    fontSize: 32,
-    fontWeight: 'bold',
-    marginTop: 8,
-  },
-  transactionsList: {
-    padding: 16,
-  },
-  transactionCard: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    backgroundColor: '#FFF',
-    borderRadius: 8,
-    padding: 16,
-    marginBottom: 16,
-  },
-  transactionInfo: {
-    flex: 1,
-  },
-  transactionAmount: {
-    fontSize: 18,
+    fontSize: 36,
     fontWeight: 'bold',
   },
-  transactionDate: {
-    fontSize: 14,
-    color: '#888',
-    marginTop: 4,
-  },
-  transactionStatus: {
-    fontSize: 14,
-    fontWeight: 'bold',
-  },
-  noTransactionsText: {
+  explanation: {
     textAlign: 'center',
-    marginTop: 20,
-    fontSize: 16,
-    color: '#888',
+    color: '#666',
+    fontSize: 14,
+    marginBottom: 20,
   },
-  addFundsButton: {
+  withdrawButton: {
     backgroundColor: '#007AFF',
-    borderRadius: 8,
-    padding: 16,
-    margin: 16,
-    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 5,
   },
-  addFundsButtonText: {
-    color: 'white',
-    fontSize: 18,
+  withdrawButtonText: {
+    color: '#FFF',
+    fontSize: 16,
     fontWeight: 'bold',
   },
-  modalContainer: {
+  centeredView: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: 'rgba(0,0,0,0.5)',
   },
-  modalContent: {
-    backgroundColor: 'white',
-    borderRadius: 8,
-    padding: 16,
-    width: '80%',
-    alignItems: 'center',
+  modalView: {
+    margin: 20,
+    backgroundColor: "white",
+    borderRadius: 20,
+    padding: 35,
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 2
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 5
   },
-  modalTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    marginBottom: 16,
+  modalText: {
+    marginBottom: 15,
+    textAlign: "center",
+    fontSize: 18,
   },
   input: {
-    backgroundColor: '#F0F0F0',
-    borderRadius: 8,
-    padding: 12,
-    fontSize: 16,
+    height: 40,
+    margin: 12,
+    borderWidth: 1,
+    padding: 10,
+    width: 200,
+    borderRadius: 5,
+  },
+  modalButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     width: '100%',
-    marginBottom: 16,
   },
-  modalButton: {
-    backgroundColor: '#007AFF',
-    borderRadius: 8,
-    padding: 12,
-    width: '100%',
-    alignItems: 'center',
-    marginBottom: 8,
+  button: {
+    borderRadius: 20,
+    padding: 10,
+    elevation: 2,
+    minWidth: 100,
   },
-  modalButtonText: {
-    color: 'white',
-    fontSize: 16,
-    fontWeight: 'bold',
+  buttonClose: {
+    backgroundColor: "#FF3B30",
   },
-  modalCancelButton: {
-    backgroundColor: '#F0F0F0',
-    borderRadius: 8,
-    padding: 12,
-    width: '100%',
-    alignItems: 'center',
+  buttonConfirm: {
+    backgroundColor: "#34C759",
   },
-  modalCancelButtonText: {
-    color: '#007AFF',
-    fontSize: 16,
-    fontWeight: 'bold',
+  textStyle: {
+    color: "white",
+    fontWeight: "bold",
+    textAlign: "center"
   },
 });

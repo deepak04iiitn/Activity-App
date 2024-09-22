@@ -2,22 +2,32 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Image, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { getFirestore, collection, query, where, getDocs, orderBy, doc, deleteDoc } from 'firebase/firestore';
-import { getAuth } from 'firebase/auth';
+import { getFirestore, collection, query, where, getDocs, orderBy, doc, deleteDoc, updateDoc, increment } from 'firebase/firestore';
+import { getAuth, onAuthStateChanged } from 'firebase/auth';
+import { Colors } from '../../constants/Colors';
 
 export default function Activity({ navigation }) {
   const [activeTab, setActiveTab] = useState('Upcoming');
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [activities, setActivities] = useState([]);
+  const [user, setUser] = useState(null);
 
   useEffect(() => {
-    fetchActivities();
-  }, [activeTab, selectedDate]);
+    const auth = getAuth();
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      setUser(user);
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  useEffect(() => {
+    if (user) {
+      fetchActivities();
+    }
+  }, [activeTab, selectedDate, user]);
 
   const fetchActivities = async () => {
-    const auth = getAuth();
-    const user = auth.currentUser;
-
     if (!user) {
       console.error('No user logged in');
       return;
@@ -25,15 +35,14 @@ export default function Activity({ navigation }) {
 
     const db = getFirestore();
     const activitiesRef = collection(db, 'activities');
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    const now = new Date();
 
     let q;
     if (activeTab === 'Upcoming') {
       q = query(
         activitiesRef,
         where('userId', '==', user.uid),
-        where('date', '>=', today.toISOString()),
+        where('date', '>=', now.toISOString()),
         orderBy('date', 'asc')
       );
     } else {
@@ -41,19 +50,25 @@ export default function Activity({ navigation }) {
       q = query(
         activitiesRef,
         where('userId', '==', user.uid),
-        where('date', '<', today.toISOString()),
+        where('date', '<', now.toISOString()),
         orderBy('date', 'desc')
       );
     }
 
-    const querySnapshot = await getDocs(q);
-    const fetchedActivities = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-    setActivities(fetchedActivities);
+    try {
+      const querySnapshot = await getDocs(q);
+      const fetchedActivities = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      setActivities(fetchedActivities);
+    } catch (error) {
+      console.error('Error fetching activities:', error);
+      Alert.alert('Error', 'Failed to fetch activities. Please try again.');
+    }
   };
 
-  const cancelActivity = async (activityId) => {
+  const cancelActivity = async (activityId, activityPrice) => {
     const db = getFirestore();
     const activityDocRef = doc(db, 'activities', activityId);
+    const userDocRef = doc(db, 'users', user.uid);
 
     Alert.alert(
       "Cancel Activity",
@@ -65,9 +80,17 @@ export default function Activity({ navigation }) {
           onPress: async () => {
             try {
               await deleteDoc(activityDocRef);
+              
+              // Update user's balance
+              await updateDoc(userDocRef, {
+                balance: increment(-activityPrice)
+              });
+
               fetchActivities(); // Refresh the list after deletion
+              Alert.alert("Success", "Activity cancelled and balance updated.");
             } catch (error) {
               console.error("Error cancelling activity: ", error);
+              Alert.alert("Error", "Failed to cancel activity. Please try again.");
             }
           }
         }
@@ -75,12 +98,14 @@ export default function Activity({ navigation }) {
     );
   };
 
+
   const renderDateSelector = () => {
     const dates = Array.from({ length: 14 }, (_, i) => {
       const date = new Date();
       date.setDate(date.getDate() + i);
       return date;
     });
+
 
     return (
       <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.dateSelector}>
@@ -113,7 +138,10 @@ export default function Activity({ navigation }) {
         <Text style={styles.activityPrice}>₹ {activity.price}</Text>
         <Text style={styles.activityCapacity}>{activity.currentCapacity}/{activity.capacity}</Text>
       </View>
-      <TouchableOpacity style={styles.cancelButton} onPress={() => cancelActivity(activity.id)}>
+      <TouchableOpacity 
+        style={styles.cancelButton} 
+        onPress={() => cancelActivity(activity.id, activity.price)}
+      >
         <Text style={styles.cancelButtonText}>Cancel</Text>
       </TouchableOpacity>
     </View>
@@ -233,6 +261,7 @@ const styles = StyleSheet.create({
   dateButtonDate: {
     fontSize: 16,
     fontWeight: 'bold',
+    color:Colors.BLUE
   },
   activitiesList: {
     padding: 16,

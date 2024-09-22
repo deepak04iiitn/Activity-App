@@ -7,12 +7,12 @@ import { getFirestore } from "firebase/firestore";
 
 // Your web app's Firebase configuration
 const firebaseConfig = {
-  apiKey: "AIzaSyCrFIDjLfU21PepbF1DoSbtX4QQxlQ4GN4",
-  authDomain: "activity-centre-1f780.firebaseapp.com",
-  projectId: "activity-centre-1f780",
-  storageBucket: "activity-centre-1f780.appspot.com",
-  messagingSenderId: "790837940057",
-  appId: "1:790837940057:web:b11935d0b574725c79c648"
+  apiKey: "AIzaSyCWdF6zqPmNvdzIoEagkTgEqC_ypOAaXD4",
+  authDomain: "nexus-df3d0.firebaseapp.com",
+  projectId: "nexus-df3d0",
+  storageBucket: "nexus-df3d0.appspot.com",
+  messagingSenderId: "291552945252",
+  appId: "1:291552945252:web:2bde18ce912b5e87a0ab71"
 };
 
 // Initialize Firebase

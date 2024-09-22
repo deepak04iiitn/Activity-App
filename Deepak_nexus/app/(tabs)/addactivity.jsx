@@ -1,12 +1,13 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, Image } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, Image, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import * as ImagePicker from 'expo-image-picker';
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { getFirestore, collection, addDoc } from 'firebase/firestore';
+import { getFirestore, collection, addDoc, doc, updateDoc, increment } from 'firebase/firestore';
 import { getAuth } from 'firebase/auth';
+import { useRouter } from 'expo-router';
 
 export default function AddActivity({ navigation }) {
   const [activityName, setActivityName] = useState('');
@@ -20,6 +21,8 @@ export default function AddActivity({ navigation }) {
   const [showStartTimePicker, setShowStartTimePicker] = useState(false);
   const [showEndTimePicker, setShowEndTimePicker] = useState(false);
   const [image, setImage] = useState(null);
+  
+  const router = useRouter();
 
   const onDateChange = (event, selectedDate) => {
     const currentDate = selectedDate || date;
@@ -97,7 +100,7 @@ export default function AddActivity({ navigation }) {
       endTime: endTime.toISOString(),
       image: imageUrl,
       userId: user.uid,
-      currentCapacity: 0, // Initial capacity of the activity
+      currentCapacity: 0,
     };
   
     const db = getFirestore();
@@ -109,23 +112,23 @@ export default function AddActivity({ navigation }) {
       // Update user's wallet balance
       const userRef = doc(db, 'users', user.uid);
       await updateDoc(userRef, {
-        balance: increment(parseFloat(price)), // Increment the balance with the price of the activity
+        balance: increment(parseFloat(price)),
       });
   
       // Add a transaction record
       await addDoc(collection(db, 'transactions'), {
         userId: user.uid,
         amount: parseFloat(price),
-        type: 'credit', // Credit transaction since the user is earning money
+        type: 'credit',
         status: 'completed',
         date: new Date().toISOString(),
-        activityId: activityRef.id, // Reference to the created activity
+        activityId: activityRef.id,
         activityName: activityName,
       });
   
       console.log('Activity added successfully and wallet updated');
   
-      // Clear input fields after successful submission
+      // Clear input fields and show success message
       setActivityName('');
       setInstructor('');
       setPrice('');
@@ -135,18 +138,16 @@ export default function AddActivity({ navigation }) {
       setEndTime(new Date());
       setImage(null);
   
-      // Show success message
       Alert.alert(
         'Success',
         `Activity added successfully and ₹${price} has been added to your wallet.`,
-        [{ text: 'OK', onPress: () => navigation.navigate('Activity') }]
+        [{ text: 'OK', onPress: () => router.push('/activity') }]
       );
     } catch (error) {
       console.error('Error adding activity: ', error);
       Alert.alert('Error', 'Failed to add activity. Please try again.');
     }
   };
-  
 
 
   return (
