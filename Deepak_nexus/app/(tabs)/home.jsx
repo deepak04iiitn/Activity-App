@@ -17,7 +17,9 @@ import { useTheme } from '../contexts/ThemeContext';
 
 const { width, height } = Dimensions.get('window');
 
+
 export default function Home({ navigation }) {
+
   const fadeAnim1 = useRef(new Animated.Value(0)).current;
   const fadeAnim2 = useRef(new Animated.Value(0)).current;
   const fadeAnim3 = useRef(new Animated.Value(0)).current;
@@ -27,6 +29,7 @@ export default function Home({ navigation }) {
   const { isDark, colors, toggleTheme } = useTheme();
 
   useFocusEffect(
+
     React.useCallback(() => {
       fadeAnim1.setValue(0);
       fadeAnim2.setValue(0);
@@ -57,6 +60,7 @@ export default function Home({ navigation }) {
       ]).start();
     }, [fadeAnim1, fadeAnim2, fadeAnim3, fadeAnim4])
   );
+
 
   const styles = StyleSheet.create({
     container: {
@@ -144,10 +148,15 @@ export default function Home({ navigation }) {
     },
   });
 
+
   return (
+
     <SafeAreaView style={styles.container}>
+
       <View style={styles.header}>
+
         <Text style={styles.headerTitle}>ActivityCentre</Text>
+
         <TouchableOpacity onPress={toggleTheme}>
           <Ionicons
             name={isDark ? 'sunny-outline' : 'moon-outline'}
@@ -155,6 +164,7 @@ export default function Home({ navigation }) {
             color={colors.text}
           />
         </TouchableOpacity>
+
         <TouchableOpacity onPress={() => router.push('/profile')}>
           <Ionicons
             name="person-circle-outline"
@@ -162,24 +172,32 @@ export default function Home({ navigation }) {
             color={colors.primary}
           />
         </TouchableOpacity>
+
       </View>
 
       <ScrollView contentContainerStyle={styles.scrollContainer}>
+
         <View style={styles.section}>
+
           <Animated.View style={{ opacity: fadeAnim1, alignItems: 'center' }}>
             <Ionicons
               name="ios-happy-outline"
               size={100}
               color={colors.primary}
             />
+
             <Text style={styles.title}>Welcome to ActivityCentre</Text>
+
             <Text style={styles.subtitle}>
               Your hub for managing and participating in activities.
             </Text>
+
           </Animated.View>
+
         </View>
 
         <View style={styles.section}>
+
           <Animated.View
             style={{ opacity: fadeAnim2, flexDirection: 'row', alignItems: 'center' }}
           >
@@ -188,15 +206,22 @@ export default function Home({ navigation }) {
               style={styles.featureImage}
             />
             <View style={styles.featureTextContainer}>
+
               <Text style={styles.featureTitle}>Create Activities</Text>
+
               <Text style={styles.featureDescription}>
                 Easily create and manage your activities with our intuitive interface.
               </Text>
+
             </View>
+
           </Animated.View>
+
         </View>
 
+
         <View style={styles.section}>
+
           <Animated.View
             style={{ opacity: fadeAnim3, flexDirection: 'row-reverse', alignItems: 'center' }}
           >
@@ -204,40 +229,60 @@ export default function Home({ navigation }) {
               source={require('../../assets/images/wallet.jpg')}
               style={styles.featureImage}
             />
+
             <View style={styles.featureTextContainer}>
+
               <Text style={styles.featureTitle}>Manage Wallet</Text>
+
               <Text style={styles.featureDescription}>
                 Keep track of your balance and transactions seamlessly.
               </Text>
+
             </View>
           </Animated.View>
+
         </View>
 
+
         <View style={styles.section}>
+
           <Animated.View style={{ opacity: fadeAnim4, alignItems: 'center' }}>
+
             <Ionicons
               name="ios-sync-outline"
               size={80}
               color={colors.secondary}
             />
+
             <Text style={styles.featureTitle}>Real-Time Updates</Text>
+
             <Text style={styles.featureDescription}>
               Stay updated with the latest activities and wallet changes in real-time.
             </Text>
+
           </Animated.View>
+
         </View>
 
+
         <View style={styles.section}>
+
           <Animated.View style={{ opacity: fadeAnim4 }}>
+
             <TouchableOpacity
               style={styles.getStartedButton}
               onPress={() => router.push('/addactivity')}
             >
               <Text style={styles.getStartedButtonText}>Get Started</Text>
+
             </TouchableOpacity>
+
           </Animated.View>
+
         </View>
+
       </ScrollView>
+      
     </SafeAreaView>
   );
 }

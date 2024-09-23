@@ -3,19 +3,20 @@ import { View, Text, StyleSheet, Alert, RefreshControl, ScrollView, TouchableOpa
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { getFirestore, doc, onSnapshot, updateDoc, increment } from 'firebase/firestore';
 import { getAuth, onAuthStateChanged } from 'firebase/auth';
-import { useNavigation } from '@react-navigation/native'; // Import useNavigation
-import Ionicons from '@expo/vector-icons/Ionicons'; // Import Ionicons
-import { useTheme } from '../contexts/ThemeContext'; // Import ThemeContext for toggle
+import { useNavigation } from '@react-navigation/native'; 
+import Ionicons from '@expo/vector-icons/Ionicons'; 
+import { useTheme } from '../contexts/ThemeContext'; 
 
 export default function Wallet() {
+
   const [balance, setBalance] = useState(0);
   const [user, setUser] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
   const [withdrawAmount, setWithdrawAmount] = useState('');
   
-  const { isDark, colors, toggleTheme } = useTheme(); // Destructure theme values and toggle
-  const navigation = useNavigation(); // Use the navigation hook
+  const { isDark, colors, toggleTheme } = useTheme(); 
+  const navigation = useNavigation(); 
 
   useEffect(() => {
     const auth = getAuth();
@@ -26,7 +27,9 @@ export default function Wallet() {
     return () => unsubscribe();
   }, []);
 
+
   useEffect(() => {
+
     let unsubscribeBalance;
 
     if (user) {
@@ -53,10 +56,12 @@ export default function Wallet() {
     };
   }, [user]);
 
+
   const onRefresh = () => {
     setRefreshing(true);
     setTimeout(() => setRefreshing(false), 1000);
   };
+
 
   const handleWithdraw = async () => {
     const amount = parseFloat(withdrawAmount);
@@ -87,27 +92,28 @@ export default function Wallet() {
     }
   };
 
+
   const styles = StyleSheet.create({
     container: {
       flex: 1,
-      backgroundColor: colors.background, // Updated to use theme colors
+      backgroundColor: colors.background, 
     },
     header: {
-      backgroundColor: colors.card, // Updated to use theme colors
+      backgroundColor: colors.card, 
       padding: 20,
       flexDirection: 'row',
       alignItems: 'center',
     },
     backButton: {
-      paddingRight: 10, // Added spacing between the back button and the title
+      paddingRight: 10, 
     },
     headerTitle: {
       flex: 1,
-      color: colors.text, // Updated to use theme colors
+      color: colors.text, 
       fontSize: 20,
       fontWeight: 'bold',
-      marginLeft: 30, // Adjust the title to move it to the right
-      textAlign: 'center', // Keep the title centered
+      marginLeft: 30, 
+      textAlign: 'center', 
     },
     scrollView: {
       flexGrow: 1,
@@ -119,7 +125,7 @@ export default function Wallet() {
       alignItems: 'center',
     },
     balanceContainer: {
-      backgroundColor: colors.primary, // Updated to use theme colors
+      backgroundColor: colors.primary, 
       padding: 20,
       borderRadius: 10,
       alignItems: 'center',
@@ -161,7 +167,7 @@ export default function Wallet() {
     },
     modalView: {
       margin: 20,
-      backgroundColor: colors.card, // Updated to use theme colors
+      backgroundColor: colors.card, 
       borderRadius: 20,
       padding: 35,
       alignItems: "center",
@@ -178,7 +184,7 @@ export default function Wallet() {
       marginBottom: 15,
       textAlign: "center",
       fontSize: 18,
-      color: colors.text, // Updated to use theme colors
+      color: colors.text, 
     },
     input: {
       height: 40,
@@ -187,8 +193,8 @@ export default function Wallet() {
       padding: 10,
       width: 200,
       borderRadius: 5,
-      color: colors.text, // Updated to use theme colors
-      borderColor: colors.border, // Updated to use theme colors
+      color: colors.text, 
+      borderColor: colors.border, 
     },
     modalButtons: {
       flexDirection: 'row',
@@ -214,16 +220,20 @@ export default function Wallet() {
     },
   });
 
+
+
   return (
+
     <SafeAreaView style={styles.container}>
+
       <View style={styles.header}>
-        {/* Back arrow */}
+        
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
           <Ionicons name="arrow-back" size={24} color={colors.text} />
         </TouchableOpacity>
+
         <Text style={styles.headerTitle}>Wallet</Text>
 
-        {/* Toggle Theme Button */}
         <TouchableOpacity onPress={toggleTheme}>
           <Ionicons
             name={isDark ? 'sunny-outline' : 'moon-outline'}
@@ -231,6 +241,7 @@ export default function Wallet() {
             color={colors.text}
           />
         </TouchableOpacity>
+
       </View>
 
       <ScrollView
@@ -239,18 +250,26 @@ export default function Wallet() {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
       >
+
         <View style={styles.content}>
+
           <View style={styles.balanceContainer}>
+
             <Text style={styles.balanceTitle}>Current Balance</Text>
             <Text style={styles.balanceAmount}>₹{balance.toFixed(2)}</Text>
+
           </View>
+
           <Text style={styles.explanation}>
             This balance represents the total price of all activities you've created.
           </Text>
+
           <TouchableOpacity style={styles.withdrawButton} onPress={() => setModalVisible(true)}>
             <Text style={styles.withdrawButtonText}>Withdraw</Text>
           </TouchableOpacity>
+
         </View>
+
       </ScrollView>
 
       <Modal
@@ -259,9 +278,13 @@ export default function Wallet() {
         visible={modalVisible}
         onRequestClose={() => setModalVisible(!modalVisible)}
       >
+
         <View style={styles.centeredView}>
+
           <View style={styles.modalView}>
+
             <Text style={styles.modalText}>Enter amount to withdraw:</Text>
+
             <TextInput
               style={styles.input}
               onChangeText={setWithdrawAmount}
@@ -270,23 +293,31 @@ export default function Wallet() {
               placeholder="Enter amount"
               placeholderTextColor={colors.textSecondary}
             />
+
             <View style={styles.modalButtons}>
+
               <TouchableOpacity
                 style={[styles.button, styles.buttonClose]}
                 onPress={() => setModalVisible(!modalVisible)}
               >
                 <Text style={styles.textStyle}>Cancel</Text>
               </TouchableOpacity>
+
               <TouchableOpacity
                 style={[styles.button, styles.buttonConfirm]}
                 onPress={handleWithdraw}
               >
                 <Text style={styles.textStyle}>Confirm</Text>
               </TouchableOpacity>
+
             </View>
+
           </View>
+
         </View>
+
       </Modal>
+      
     </SafeAreaView>
   );
 }

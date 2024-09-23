@@ -7,6 +7,7 @@ import { getAuth, onAuthStateChanged } from 'firebase/auth';
 import { useTheme } from '../contexts/ThemeContext';
 
 export default function Activity({ navigation }) {
+
   const [activeTab, setActiveTab] = useState('Upcoming');
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [activities, setActivities] = useState([]);
@@ -25,11 +26,13 @@ export default function Activity({ navigation }) {
     return () => unsubscribe();
   }, []);
 
+
   useEffect(() => {
     if (user) {
       fetchActivities();
     }
   }, [activeTab, selectedDate, user]);
+
 
   const fetchActivities = async () => {
     if (!user) {
@@ -69,6 +72,7 @@ export default function Activity({ navigation }) {
     }
   };
 
+
   const cancelActivity = async (activityId, activityPrice) => {
     const db = getFirestore();
     const activityDocRef = doc(db, 'activities', activityId);
@@ -90,7 +94,7 @@ export default function Activity({ navigation }) {
                 balance: increment(-activityPrice)
               });
 
-              fetchActivities(); // Refresh the list after deletion
+              fetchActivities(); 
               Alert.alert("Success", "Activity cancelled and balance updated.");
             } catch (error) {
               console.error("Error cancelling activity: ", error);
@@ -102,6 +106,7 @@ export default function Activity({ navigation }) {
     );
   };
 
+
   const renderDateSelector = () => {
     const dates = Array.from({ length: 14 }, (_, i) => {
       const date = new Date();
@@ -109,8 +114,11 @@ export default function Activity({ navigation }) {
       return date;
     });
   
+
     return (
+
       <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.dateSelector}>
+
         {dates.map((date, index) => (
           <TouchableOpacity 
             key={index} 
@@ -143,25 +151,36 @@ export default function Activity({ navigation }) {
 
 
   const ActivityCard = ({ activity }) => (
+
     <View style={[styles.activityCard, { backgroundColor: colors.card }]}>
+
       <Image source={{ uri: activity.image }} style={styles.activityImage} />
+
       <View style={styles.activityInfo}>
+
         <Text style={[styles.activityName, { color: colors.text }]}>{activity.name}</Text>
+
         <Text style={[styles.activityTime, { color: colors.secondary }]}>
           {new Date(activity.startTime).toLocaleTimeString()} - {new Date(activity.endTime).toLocaleTimeString()}
         </Text>
+
         <Text style={[styles.activityInstructor, { color: colors.text }]}>{activity.instructor}</Text>
+
         <Text style={[styles.activityPrice, { color: colors.primary }]}>₹ {activity.price}</Text>
+
         <Text style={[styles.activityCapacity, { color: colors.secondary }]}>
           {activity.currentCapacity}/{activity.capacity}
         </Text>
+
       </View>
+
       <TouchableOpacity 
         style={styles.cancelButton} 
         onPress={() => cancelActivity(activity.id, activity.price)}
       >
         <Text style={styles.cancelButtonText}>Cancel</Text>
       </TouchableOpacity>
+
     </View>
   );
 
@@ -172,8 +191,9 @@ export default function Activity({ navigation }) {
         return activityDate.toDateString() === selectedDate.toDateString();
       });
     }
-    return activities; // For the past tab, all activities already come filtered
+    return activities; 
   };
+
 
   const filterActivitiesBySearch = (activities) => {
     if (!searchQuery) return activities;
@@ -183,6 +203,7 @@ export default function Activity({ navigation }) {
     );
   };
 
+
   const toggleSearch = () => {
     setShowSearch(!showSearch);
     if (showSearch) {
@@ -190,7 +211,9 @@ export default function Activity({ navigation }) {
     }
   };
 
+
   const filteredActivities = filterActivitiesBySearch(filterActivitiesByDate(activities));
+
 
   const styles = StyleSheet.create({
     container: {
@@ -325,14 +348,21 @@ export default function Activity({ navigation }) {
     },
   });
 
+
   return (
+
     <SafeAreaView style={styles.container}>
+
       <View style={styles.header}>
+
         <Text style={styles.headerTitle}>Activity</Text>
+
         <View style={styles.headerIcons}>
+
           <TouchableOpacity onPress={toggleSearch}>
             <Ionicons name="search" size={24} color={colors.text} style={styles.headerIcon} />
           </TouchableOpacity>
+
           <TouchableOpacity onPress={toggleTheme}>
             <Ionicons
               name={isDark ? 'sunny-outline' : 'moon-outline'}
@@ -341,7 +371,9 @@ export default function Activity({ navigation }) {
               style={styles.headerIcon}
             />
           </TouchableOpacity>
+
         </View>
+
       </View>
       
       {showSearch && (
@@ -357,18 +389,21 @@ export default function Activity({ navigation }) {
       )}
 
       <View style={styles.tabBar}>
+
         <TouchableOpacity 
           style={[styles.tab, activeTab === 'Upcoming' && styles.activeTab]} 
           onPress={() => setActiveTab('Upcoming')}
         >
           <Text style={[styles.tabText, activeTab === 'Upcoming' && styles.activeTabText]}>Upcoming</Text>
         </TouchableOpacity>
+
         <TouchableOpacity 
           style={[styles.tab, activeTab === 'Past' && styles.activeTab]} 
           onPress={() => setActiveTab('Past')}
         >
           <Text style={[styles.tabText, activeTab === 'Past' && styles.activeTabText]}>Past</Text>
         </TouchableOpacity>
+
       </View>
 
       {activeTab === 'Upcoming' && renderDateSelector()}
@@ -382,6 +417,7 @@ export default function Activity({ navigation }) {
           <Text style={styles.noActivitiesText}>No activities available</Text>
         )}
       </ScrollView>
+      
     </SafeAreaView>
   );
 }

@@ -11,6 +11,7 @@ import { useRouter } from 'expo-router';
 import { useTheme } from '../contexts/ThemeContext';
 
 export default function AddActivity({ navigation }) {
+
   const [activityName, setActivityName] = useState('');
   const [instructor, setInstructor] = useState('');
   const [price, setPrice] = useState('');
@@ -146,6 +147,7 @@ export default function AddActivity({ navigation }) {
     }
   };
 
+
   const styles = StyleSheet.create({
     container: {
       flex: 1,
@@ -216,13 +218,19 @@ export default function AddActivity({ navigation }) {
     },
   });
 
+
   return (
+
     <SafeAreaView style={styles.container}>
+
       <View style={styles.header}>
+
         <TouchableOpacity onPress={() => navigation.goBack()}>
           <Ionicons name="arrow-back" size={24} color={colors.text} />
         </TouchableOpacity>
+
         <Text style={styles.headerTitle}>Add Activity</Text>
+
         <TouchableOpacity onPress={toggleTheme}>
           <Ionicons
             name={isDark ? 'sunny-outline' : 'moon-outline'}
@@ -230,9 +238,11 @@ export default function AddActivity({ navigation }) {
             color={colors.text}
           />
         </TouchableOpacity>
+
       </View>
 
       <ScrollView style={styles.form}>
+
         <TextInput
           style={styles.input}
           placeholder="Activity Name"
@@ -320,7 +330,9 @@ export default function AddActivity({ navigation }) {
         <TouchableOpacity style={styles.addButton} onPress={handleAddActivity}>
           <Text style={styles.addButtonText}>Add Activity</Text>
         </TouchableOpacity>
+
       </ScrollView>
+      
     </SafeAreaView>
   );
 }

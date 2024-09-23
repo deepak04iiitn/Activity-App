@@ -7,9 +7,11 @@ import { signOut, deleteUser } from 'firebase/auth';
 import { auth } from '../../configs/FirebaseConfig';
 import { ErrorBoundary } from 'react-error-boundary';
 import { useRouter } from 'expo-router';
-import { useTheme } from '../contexts/ThemeContext'; // Assume this context exists
+import { useTheme } from '../contexts/ThemeContext'; 
+
 
 const getColors = (isDark) => ({
+
   PRIMARY: isDark ? '#3a7bd5' : '#4a90e2',
   SECONDARY: isDark ? '#e67e22' : '#f39c12',
   BACKGROUND: isDark ? '#121212' : '#f5f5f5',
@@ -20,34 +22,46 @@ const getColors = (isDark) => ({
 });
 
 function ErrorFallback({error, resetErrorBoundary}) {
+
   const { isDark } = useTheme();
   const Colors = getColors(isDark);
 
   return (
+
     <View style={[styles.errorContainer, { backgroundColor: Colors.BACKGROUND }]}>
+
       <Text style={[styles.errorTitle, { color: Colors.DANGER }]}>Oops! Something went wrong:</Text>
+
       <Text style={[styles.errorMessage, { color: Colors.TEXT }]}>{error.message}</Text>
+
       <TouchableOpacity style={[styles.errorButton, { backgroundColor: Colors.PRIMARY }]} onPress={resetErrorBoundary}>
         <Text style={styles.errorButtonText}>Try again</Text>
       </TouchableOpacity>
+
     </View>
   );
 }
 
+
+
 export default function ProfileWrapper() {
+
   const { isDark } = useTheme();
   const Colors = getColors(isDark);
 
   return (
+
     <ErrorBoundary FallbackComponent={ErrorFallback}>
       <Suspense fallback={<ActivityIndicator size="large" color={Colors.PRIMARY} />}>
         <ProfileComponent />
       </Suspense>
     </ErrorBoundary>
+
   );
 }
 
 function ProfileComponent() {
+
   const currUser = auth.currentUser;
   const navigation = useNavigation();
   const [user, setUser] = useState(null);
@@ -58,6 +72,7 @@ function ProfileComponent() {
   const router = useRouter();
   const { isDark, toggleTheme } = useTheme();
   const Colors = getColors(isDark);
+
 
   const styles = StyleSheet.create({
     container: {
@@ -185,6 +200,7 @@ function ProfileComponent() {
     },
   });
 
+
   useFocusEffect(
     React.useCallback(() => {
       fadeAnim.setValue(0);
@@ -196,7 +212,9 @@ function ProfileComponent() {
     }, [fadeAnim])
   );
 
+
   useEffect(() => {
+
     let unsubscribeUser;
     let unsubscribeBalance;
 
@@ -243,6 +261,8 @@ function ProfileComponent() {
     };
   }, [currUser, navigation]);
 
+
+
   const handleSignOut = async () => {
     try {
       await signOut(auth);
@@ -252,6 +272,8 @@ function ProfileComponent() {
       Alert.alert('Error', 'Failed to sign out. Please try again.');
     }
   };
+
+
 
   const handleDeleteAccount = async () => {
     Alert.alert(
@@ -278,6 +300,7 @@ function ProfileComponent() {
     );
   };
 
+
   if (isLoading) {
     return (
       <View style={styles.loadingContainer}>
@@ -286,26 +309,38 @@ function ProfileComponent() {
     );
   }
 
+
   if (!currUser || !user) {
     return (
       <View style={styles.errorContainer}>
+
         <Text style={styles.errorMessage}>User data not available. Please sign in again.</Text>
+        
         <TouchableOpacity style={styles.errorButton} onPress={() => navigation.navigate('SignIn')}>
           <Text style={styles.errorButtonText}>Go to Sign In</Text>
         </TouchableOpacity>
+
       </View>
     );
   }
 
+
   return (
+
     <Animated.View style={[styles.container, { opacity: fadeAnim }]}>
+
       <View style={styles.header}>
+
         <View style={styles.headerLeft}>
+
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
             <Ionicons name="arrow-back" size={24} color={Colors.WHITE} />
           </TouchableOpacity>
+
           <Text style={styles.headerTitle}>Profile</Text>
+
         </View>
+
         <TouchableOpacity onPress={toggleTheme}>
           <Ionicons
             name={isDark ? 'sunny-outline' : 'moon-outline'}
@@ -313,18 +348,24 @@ function ProfileComponent() {
             color={Colors.WHITE}
           />
         </TouchableOpacity>
+
       </View>
 
       <View style={styles.content}>
+
         <View style={styles.profileHeader}>
+
           <Image
             style={styles.profileImage}
             source={{
               uri: user.profilePicture || 'https://www.w3schools.com/howto/img_avatar.png',
             }}
           />
+
           <Text style={styles.profileName}>{user.fullName || 'User Name'}</Text>
+
           <Text style={styles.profileEmail}>{currUser.email || 'Email not found'}</Text>
+
         </View>
 
         <View style={styles.balanceContainer}>
@@ -341,7 +382,9 @@ function ProfileComponent() {
           <Ionicons name="trash-outline" size={24} color={Colors.WHITE} />
           <Text style={styles.buttonText}>Delete Account</Text>
         </TouchableOpacity>
+
       </View>
+      
     </Animated.View>
   );
 }
