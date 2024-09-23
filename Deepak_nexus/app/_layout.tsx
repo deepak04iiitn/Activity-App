@@ -10,7 +10,6 @@ export default function RootLayout() {
     'outfit-medium' : require('./../assets/fonts/Outfit-Medium.ttf')
   })
 
-
   return (
 
     <ThemeProvider>

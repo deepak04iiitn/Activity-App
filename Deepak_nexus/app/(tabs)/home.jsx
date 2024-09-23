@@ -231,7 +231,7 @@ export default function Home({ navigation }) {
           <Animated.View style={{ opacity: fadeAnim4 }}>
             <TouchableOpacity
               style={styles.getStartedButton}
-              onPress={() => navigation.navigate('Activity')}
+              onPress={() => router.push('/addactivity')}
             >
               <Text style={styles.getStartedButtonText}>Get Started</Text>
             </TouchableOpacity>

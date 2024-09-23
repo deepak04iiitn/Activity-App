@@ -138,12 +138,12 @@ export default function Wallet() {
     },
     explanation: {
       textAlign: 'center',
-      color: colors.textSecondary, // Updated to use dynamic text color for visibility
+      color: colors.text, 
       fontSize: 14,
       marginBottom: 20,
     },
     withdrawButton: {
-      backgroundColor: colors.primary, // Updated to use theme colors
+      backgroundColor: colors.primary, 
       paddingHorizontal: 20,
       paddingVertical: 10,
       borderRadius: 5,

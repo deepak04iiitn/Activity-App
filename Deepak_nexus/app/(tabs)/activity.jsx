@@ -108,7 +108,7 @@ export default function Activity({ navigation }) {
       date.setDate(date.getDate() + i);
       return date;
     });
-
+  
     return (
       <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.dateSelector}>
         {dates.map((date, index) => (
@@ -116,14 +116,23 @@ export default function Activity({ navigation }) {
             key={index} 
             style={[
               styles.dateButton,
-              selectedDate.toDateString() === date.toDateString() && styles.selectedDateButton
+              selectedDate.toDateString() === date.toDateString() && [
+                styles.selectedDateButton,
+                { backgroundColor: colors.primary, borderColor: colors.primary }
+              ]
             ]}
             onPress={() => setSelectedDate(date)}
           >
-            <Text style={[styles.dateButtonDay, { color: colors.text }]}>
+            <Text style={[
+              styles.dateButtonDay, 
+              selectedDate.toDateString() === date.toDateString() && { color: colors.background }
+            ]}>
               {date.toLocaleDateString('en-US', { weekday: 'short' })}
             </Text>
-            <Text style={[styles.dateButtonDate, { color: colors.primary }]}>
+            <Text style={[
+              styles.dateButtonDate,
+              selectedDate.toDateString() === date.toDateString() && { color: colors.background }
+            ]}>
               {date.getDate()}
             </Text>
           </TouchableOpacity>
@@ -131,6 +140,7 @@ export default function Activity({ navigation }) {
       </ScrollView>
     );
   };
+
 
   const ActivityCard = ({ activity }) => (
     <View style={[styles.activityCard, { backgroundColor: colors.card }]}>
