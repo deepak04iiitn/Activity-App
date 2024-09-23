@@ -1,5 +1,6 @@
 import { useFonts } from "expo-font";
 import { Stack } from "expo-router";
+import { ThemeProvider } from './contexts/ThemeContext';
 
 export default function RootLayout() {
 
@@ -12,13 +13,15 @@ export default function RootLayout() {
 
   return (
 
-    <Stack screenOptions={{
-      headerShown : false
-    }}>
-
-      <Stack.Screen name="index" />
-
-    </Stack>
-
+    <ThemeProvider>
+      <Stack screenOptions={{
+        headerShown:false
+      }}>
+        <Stack.Screen name="index" options={{ headerShown: false }} />
+        <Stack.Screen name="home" options={{ headerShown: false }} />
+        <Stack.Screen name="wallet" options={{ headerShown: false }} />
+        <Stack.Screen name="profile" options={{ headerShown: false }} />
+      </Stack>
+    </ThemeProvider>
   );
 }

@@ -5,15 +5,16 @@ import { getFirestore, doc, onSnapshot, updateDoc, increment } from 'firebase/fi
 import { getAuth, onAuthStateChanged } from 'firebase/auth';
 import { useNavigation } from '@react-navigation/native'; // Import useNavigation
 import Ionicons from '@expo/vector-icons/Ionicons'; // Import Ionicons
+import { useTheme } from '../contexts/ThemeContext'; // Import ThemeContext for toggle
 
 export default function Wallet() {
-
   const [balance, setBalance] = useState(0);
   const [user, setUser] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
   const [withdrawAmount, setWithdrawAmount] = useState('');
-
+  
+  const { isDark, colors, toggleTheme } = useTheme(); // Destructure theme values and toggle
   const navigation = useNavigation(); // Use the navigation hook
 
   useEffect(() => {
@@ -86,15 +87,152 @@ export default function Wallet() {
     }
   };
 
+  const styles = StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: colors.background, // Updated to use theme colors
+    },
+    header: {
+      backgroundColor: colors.card, // Updated to use theme colors
+      padding: 20,
+      flexDirection: 'row',
+      alignItems: 'center',
+    },
+    backButton: {
+      paddingRight: 10, // Added spacing between the back button and the title
+    },
+    headerTitle: {
+      flex: 1,
+      color: colors.text, // Updated to use theme colors
+      fontSize: 20,
+      fontWeight: 'bold',
+      marginLeft: 30, // Adjust the title to move it to the right
+      textAlign: 'center', // Keep the title centered
+    },
+    scrollView: {
+      flexGrow: 1,
+    },
+    content: {
+      flex: 1,
+      justifyContent: 'center',
+      padding: 20,
+      alignItems: 'center',
+    },
+    balanceContainer: {
+      backgroundColor: colors.primary, // Updated to use theme colors
+      padding: 20,
+      borderRadius: 10,
+      alignItems: 'center',
+      width: '100%',
+      marginBottom: 20,
+    },
+    balanceTitle: {
+      color: '#FFF',
+      fontSize: 18,
+      marginBottom: 10,
+    },
+    balanceAmount: {
+      color: '#FFF',
+      fontSize: 36,
+      fontWeight: 'bold',
+    },
+    explanation: {
+      textAlign: 'center',
+      color: colors.textSecondary, // Updated to use dynamic text color for visibility
+      fontSize: 14,
+      marginBottom: 20,
+    },
+    withdrawButton: {
+      backgroundColor: colors.primary, // Updated to use theme colors
+      paddingHorizontal: 20,
+      paddingVertical: 10,
+      borderRadius: 5,
+    },
+    withdrawButtonText: {
+      color: '#FFF',
+      fontSize: 16,
+      fontWeight: 'bold',
+    },
+    centeredView: {
+      flex: 1,
+      justifyContent: "center",
+      alignItems: "center",
+      backgroundColor: 'rgba(0,0,0,0.5)',
+    },
+    modalView: {
+      margin: 20,
+      backgroundColor: colors.card, // Updated to use theme colors
+      borderRadius: 20,
+      padding: 35,
+      alignItems: "center",
+      shadowColor: "#000",
+      shadowOffset: {
+        width: 0,
+        height: 2
+      },
+      shadowOpacity: 0.25,
+      shadowRadius: 4,
+      elevation: 5
+    },
+    modalText: {
+      marginBottom: 15,
+      textAlign: "center",
+      fontSize: 18,
+      color: colors.text, // Updated to use theme colors
+    },
+    input: {
+      height: 40,
+      margin: 12,
+      borderWidth: 1,
+      padding: 10,
+      width: 200,
+      borderRadius: 5,
+      color: colors.text, // Updated to use theme colors
+      borderColor: colors.border, // Updated to use theme colors
+    },
+    modalButtons: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      width: '100%',
+    },
+    button: {
+      borderRadius: 20,
+      padding: 10,
+      elevation: 2,
+      minWidth: 100,
+    },
+    buttonClose: {
+      backgroundColor: "#FF3B30",
+    },
+    buttonConfirm: {
+      backgroundColor: "#34C759",
+    },
+    textStyle: {
+      color: "white",
+      fontWeight: "bold",
+      textAlign: "center"
+    },
+  });
+
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         {/* Back arrow */}
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color="#FFF" />
+          <Ionicons name="arrow-back" size={24} color={colors.text} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Wallet</Text>
+
+        {/* Toggle Theme Button */}
+        <TouchableOpacity onPress={toggleTheme}>
+          <Ionicons
+            name={isDark ? 'sunny-outline' : 'moon-outline'}
+            size={24}
+            color={colors.text}
+          />
+        </TouchableOpacity>
       </View>
+
       <ScrollView
         contentContainerStyle={styles.scrollView}
         refreshControl={
@@ -130,6 +268,7 @@ export default function Wallet() {
               value={withdrawAmount}
               keyboardType="numeric"
               placeholder="Enter amount"
+              placeholderTextColor={colors.textSecondary}
             />
             <View style={styles.modalButtons}>
               <TouchableOpacity
@@ -151,132 +290,3 @@ export default function Wallet() {
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#F5F5F5',
-  },
-  header: {
-    backgroundColor: '#007AFF',
-    padding: 20,
-    alignItems: 'center',
-    flexDirection: 'row',
-  },
-  backButton: {
-    position: 'absolute',
-    left: 20,
-  },
-  headerTitle: {
-    flex: 1,
-    color: '#FFF',
-    fontSize: 20,
-    fontWeight: 'bold',
-    textAlign: 'center',
-  },
-  scrollView: {
-    flexGrow: 1,
-  },
-  content: {
-    flex: 1,
-    justifyContent: 'center',
-    padding: 20,
-    alignItems: 'center',
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginBottom: 20,
-  },
-  balanceContainer: {
-    backgroundColor: '#007AFF',
-    padding: 20,
-    borderRadius: 10,
-    alignItems: 'center',
-    width: '100%',
-    marginBottom: 20,
-  },
-  balanceTitle: {
-    color: '#FFF',
-    fontSize: 18,
-    marginBottom: 10,
-  },
-  balanceAmount: {
-    color: '#FFF',
-    fontSize: 36,
-    fontWeight: 'bold',
-  },
-  explanation: {
-    textAlign: 'center',
-    color: '#666',
-    fontSize: 14,
-    marginBottom: 20,
-  },
-  withdrawButton: {
-    backgroundColor: '#007AFF',
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 5,
-  },
-  withdrawButtonText: {
-    color: '#FFF',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  centeredView: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: 'rgba(0,0,0,0.5)',
-  },
-  modalView: {
-    margin: 20,
-    backgroundColor: "white",
-    borderRadius: 20,
-    padding: 35,
-    alignItems: "center",
-    shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 2
-    },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
-    elevation: 5
-  },
-  modalText: {
-    marginBottom: 15,
-    textAlign: "center",
-    fontSize: 18,
-  },
-  input: {
-    height: 40,
-    margin: 12,
-    borderWidth: 1,
-    padding: 10,
-    width: 200,
-    borderRadius: 5,
-  },
-  modalButtons: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    width: '100%',
-  },
-  button: {
-    borderRadius: 20,
-    padding: 10,
-    elevation: 2,
-    minWidth: 100,
-  },
-  buttonClose: {
-    backgroundColor: "#FF3B30",
-  },
-  buttonConfirm: {
-    backgroundColor: "#34C759",
-  },
-  textStyle: {
-    color: "white",
-    fontWeight: "bold",
-    textAlign: "center"
-  },
-});

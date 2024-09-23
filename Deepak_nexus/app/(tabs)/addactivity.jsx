@@ -8,6 +8,7 @@ import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { getFirestore, collection, addDoc, doc, updateDoc, increment } from 'firebase/firestore';
 import { getAuth } from 'firebase/auth';
 import { useRouter } from 'expo-router';
+import { useTheme } from '../contexts/ThemeContext';
 
 export default function AddActivity({ navigation }) {
   const [activityName, setActivityName] = useState('');
@@ -23,6 +24,7 @@ export default function AddActivity({ navigation }) {
   const [image, setImage] = useState(null);
   
   const router = useRouter();
+  const { isDark, colors, toggleTheme } = useTheme();
 
   const onDateChange = (event, selectedDate) => {
     const currentDate = selectedDate || date;
@@ -87,7 +89,6 @@ export default function AddActivity({ navigation }) {
       return;
     }
   
-    // Upload the image if selected
     const imageUrl = await uploadImage();
   
     const activityData = {
@@ -106,16 +107,13 @@ export default function AddActivity({ navigation }) {
     const db = getFirestore();
   
     try {
-      // Add the activity document
       const activityRef = await addDoc(collection(db, 'activities'), activityData);
   
-      // Update user's wallet balance
       const userRef = doc(db, 'users', user.uid);
       await updateDoc(userRef, {
         balance: increment(parseFloat(price)),
       });
   
-      // Add a transaction record
       await addDoc(collection(db, 'transactions'), {
         userId: user.uid,
         amount: parseFloat(price),
@@ -128,7 +126,6 @@ export default function AddActivity({ navigation }) {
   
       console.log('Activity added successfully and wallet updated');
   
-      // Clear input fields and show success message
       setActivityName('');
       setInstructor('');
       setPrice('');
@@ -149,16 +146,89 @@ export default function AddActivity({ navigation }) {
     }
   };
 
+  const styles = StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: colors.background,
+    },
+    header: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      padding: 16,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.border,
+    },
+    headerTitle: {
+      fontSize: 20,
+      fontWeight: 'bold',
+      color: colors.text,
+    },
+    form: {
+      padding: 16,
+    },
+    input: {
+      backgroundColor: colors.card,
+      borderRadius: 8,
+      padding: 12,
+      marginBottom: 16,
+      fontSize: 16,
+      color: colors.text,
+    },
+    dateInput: {
+      backgroundColor: colors.card,
+      borderRadius: 8,
+      padding: 12,
+      marginBottom: 16,
+    },
+    dateText: {
+      color: colors.text,
+    },
+    addButton: {
+      backgroundColor: colors.primary,
+      borderRadius: 8,
+      padding: 16,
+      alignItems: 'center',
+      marginTop: 16,
+    },
+    addButtonText: {
+      color: 'white',
+      fontSize: 18,
+      fontWeight: 'bold',
+    },
+    imageUploadButton: {
+      backgroundColor: colors.primary,
+      borderRadius: 8,
+      padding: 16,
+      alignItems: 'center',
+      marginBottom: 16,
+    },
+    imageUploadButtonText: {
+      color: 'white',
+      fontSize: 16,
+      fontWeight: 'bold',
+    },
+    previewImage: {
+      width: '100%',
+      height: 200,
+      borderRadius: 8,
+      marginBottom: 16,
+    },
+  });
 
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color="black" />
+          <Ionicons name="arrow-back" size={24} color={colors.text} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Add Activity</Text>
-        <TouchableOpacity onPress={handleAddActivity}>
-          <Text style={styles.saveButton}>Save</Text>
+        <TouchableOpacity onPress={toggleTheme}>
+          <Ionicons
+            name={isDark ? 'sunny-outline' : 'moon-outline'}
+            size={24}
+            color={colors.text}
+          />
         </TouchableOpacity>
       </View>
 
@@ -166,6 +236,7 @@ export default function AddActivity({ navigation }) {
         <TextInput
           style={styles.input}
           placeholder="Activity Name"
+          placeholderTextColor={colors.text}
           value={activityName}
           onChangeText={setActivityName}
         />
@@ -173,6 +244,7 @@ export default function AddActivity({ navigation }) {
         <TextInput
           style={styles.input}
           placeholder="Instructor"
+          placeholderTextColor={colors.text}
           value={instructor}
           onChangeText={setInstructor}
         />
@@ -180,6 +252,7 @@ export default function AddActivity({ navigation }) {
         <TextInput
           style={styles.input}
           placeholder="Price"
+          placeholderTextColor={colors.text}
           value={price}
           onChangeText={setPrice}
           keyboardType="numeric"
@@ -188,13 +261,14 @@ export default function AddActivity({ navigation }) {
         <TextInput
           style={styles.input}
           placeholder="Capacity"
+          placeholderTextColor={colors.text}
           value={capacity}
           onChangeText={setCapacity}
           keyboardType="numeric"
         />
 
         <TouchableOpacity style={styles.dateInput} onPress={() => setShowDatePicker(true)}>
-          <Text>{date.toDateString()}</Text>
+          <Text style={styles.dateText}>{date.toDateString()}</Text>
         </TouchableOpacity>
 
         {showDatePicker && (
@@ -203,11 +277,12 @@ export default function AddActivity({ navigation }) {
             mode="date"
             display="default"
             onChange={onDateChange}
+            textColor={colors.text}
           />
         )}
 
         <TouchableOpacity style={styles.dateInput} onPress={() => setShowStartTimePicker(true)}>
-          <Text>{startTime.toLocaleTimeString()}</Text>
+          <Text style={styles.dateText}>{startTime.toLocaleTimeString()}</Text>
         </TouchableOpacity>
 
         {showStartTimePicker && (
@@ -217,11 +292,12 @@ export default function AddActivity({ navigation }) {
             is24Hour={true}
             display="default"
             onChange={onStartTimeChange}
+            textColor={colors.text}
           />
         )}
 
         <TouchableOpacity style={styles.dateInput} onPress={() => setShowEndTimePicker(true)}>
-          <Text>{endTime.toLocaleTimeString()}</Text>
+          <Text style={styles.dateText}>{endTime.toLocaleTimeString()}</Text>
         </TouchableOpacity>
 
         {showEndTimePicker && (
@@ -231,6 +307,7 @@ export default function AddActivity({ navigation }) {
             is24Hour={true}
             display="default"
             onChange={onEndTimeChange}
+            textColor={colors.text}
           />
         )}
 
@@ -247,72 +324,3 @@ export default function AddActivity({ navigation }) {
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#F5F5F5',
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E0E0E0',
-  },
-  headerTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-  },
-  saveButton: {
-    color: '#007AFF',
-    fontSize: 16,
-  },
-  form: {
-    padding: 16,
-  },
-  input: {
-    backgroundColor: 'white',
-    borderRadius: 8,
-    padding: 12,
-    marginBottom: 16,
-    fontSize: 16,
-  },
-  dateInput: {
-    backgroundColor: 'white',
-    borderRadius: 8,
-    padding: 12,
-    marginBottom: 16,
-  },
-  addButton: {
-    backgroundColor: '#007AFF',
-    borderRadius: 8,
-    padding: 16,
-    alignItems: 'center',
-    marginTop: 16,
-  },
-  addButtonText: {
-    color: 'white',
-    fontSize: 18,
-    fontWeight: 'bold',
-  },
-  imageUploadButton: {
-    backgroundColor: '#007AFF',
-    borderRadius: 8,
-    padding: 16,
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  imageUploadButtonText: {
-    color: 'white',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  previewImage: {
-    width: '100%',
-    height: 200,
-    borderRadius: 8,
-    marginBottom: 16,
-  },
-});

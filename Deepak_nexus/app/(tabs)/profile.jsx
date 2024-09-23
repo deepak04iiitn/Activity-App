@@ -7,22 +7,27 @@ import { signOut, deleteUser } from 'firebase/auth';
 import { auth } from '../../configs/FirebaseConfig';
 import { ErrorBoundary } from 'react-error-boundary';
 import { useRouter } from 'expo-router';
+import { useTheme } from '../contexts/ThemeContext'; // Assume this context exists
 
-const Colors = {
-  PRIMARY: '#4a90e2',
-  SECONDARY: '#f39c12',
-  BACKGROUND: '#f5f5f5',
-  TEXT: '#333',
+const getColors = (isDark) => ({
+  PRIMARY: isDark ? '#3a7bd5' : '#4a90e2',
+  SECONDARY: isDark ? '#e67e22' : '#f39c12',
+  BACKGROUND: isDark ? '#121212' : '#f5f5f5',
+  TEXT: isDark ? '#fff' : '#333',
   WHITE: '#fff',
-  DANGER: '#e74c3c',
-};
+  DANGER: isDark ? '#ff6b6b' : '#e74c3c',
+  CARD: isDark ? '#1e1e1e' : '#ffffff',
+});
 
 function ErrorFallback({error, resetErrorBoundary}) {
+  const { isDark } = useTheme();
+  const Colors = getColors(isDark);
+
   return (
-    <View style={styles.errorContainer}>
-      <Text style={styles.errorTitle}>Oops! Something went wrong:</Text>
-      <Text style={styles.errorMessage}>{error.message}</Text>
-      <TouchableOpacity style={styles.errorButton} onPress={resetErrorBoundary}>
+    <View style={[styles.errorContainer, { backgroundColor: Colors.BACKGROUND }]}>
+      <Text style={[styles.errorTitle, { color: Colors.DANGER }]}>Oops! Something went wrong:</Text>
+      <Text style={[styles.errorMessage, { color: Colors.TEXT }]}>{error.message}</Text>
+      <TouchableOpacity style={[styles.errorButton, { backgroundColor: Colors.PRIMARY }]} onPress={resetErrorBoundary}>
         <Text style={styles.errorButtonText}>Try again</Text>
       </TouchableOpacity>
     </View>
@@ -30,6 +35,9 @@ function ErrorFallback({error, resetErrorBoundary}) {
 }
 
 export default function ProfileWrapper() {
+  const { isDark } = useTheme();
+  const Colors = getColors(isDark);
+
   return (
     <ErrorBoundary FallbackComponent={ErrorFallback}>
       <Suspense fallback={<ActivityIndicator size="large" color={Colors.PRIMARY} />}>
@@ -46,19 +54,144 @@ function ProfileComponent() {
   const [balance, setBalance] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
 
-  const fadeAnim = useRef(new Animated.Value(0)).current; // Initial opacity of 0
+  const fadeAnim = useRef(new Animated.Value(0)).current;
   const router = useRouter();
+  const { isDark, toggleTheme } = useTheme();
+  const Colors = getColors(isDark);
+
+  const styles = StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: Colors.BACKGROUND,
+    },
+    header: {
+      backgroundColor: Colors.PRIMARY,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      padding: 20,
+      paddingTop: 40,
+    },
+    headerLeft: {
+      flexDirection: 'row',
+      alignItems: 'center',
+    },
+    backButton: {
+      marginRight: 15,
+    },
+    headerTitle: {
+      color: Colors.WHITE,
+      fontSize: 20,
+      fontWeight: 'bold',
+    },
+    content: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      padding: 20,
+    },
+    profileHeader: {
+      alignItems: 'center',
+      marginBottom: 30,
+    },
+    profileImage: {
+      width: 120,
+      height: 120,
+      borderRadius: 60,
+      marginBottom: 20,
+      borderColor: Colors.PRIMARY,
+      borderWidth: 2,
+    },
+    profileName: {
+      fontSize: 26,
+      fontWeight: 'bold',
+      marginBottom: 5,
+      color: Colors.TEXT,
+    },
+    profileEmail: {
+      fontSize: 16,
+      color: Colors.TEXT,
+    },
+    balanceContainer: {
+      backgroundColor: Colors.PRIMARY,
+      padding: 20,
+      borderRadius: 10,
+      alignItems: 'center',
+      width: '100%',
+      marginBottom: 30,
+    },
+    balanceTitle: {
+      color: Colors.WHITE,
+      fontSize: 18,
+      marginBottom: 10,
+    },
+    balanceAmount: {
+      color: Colors.WHITE,
+      fontSize: 32,
+      fontWeight: 'bold',
+    },
+    button: {
+      flexDirection: 'row',
+      backgroundColor: Colors.SECONDARY,
+      padding: 15,
+      borderRadius: 10,
+      alignItems: 'center',
+      width: '100%',
+      marginBottom: 15,
+    },
+    deleteButton: {
+      backgroundColor: Colors.DANGER,
+    },
+    buttonText: {
+      color: Colors.WHITE,
+      marginLeft: 10,
+      fontSize: 18,
+      fontWeight: 'bold',
+    },
+    loadingContainer: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      backgroundColor: Colors.BACKGROUND,
+    },
+    errorContainer: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      backgroundColor: Colors.BACKGROUND,
+      padding: 20,
+    },
+    errorTitle: {
+      fontSize: 20,
+      fontWeight: 'bold',
+      color: Colors.DANGER,
+      marginBottom: 10,
+    },
+    errorMessage: {
+      fontSize: 16,
+      color: Colors.TEXT,
+      textAlign: 'center',
+      marginBottom: 20,
+    },
+    errorButton: {
+      backgroundColor: Colors.PRIMARY,
+      padding: 10,
+      borderRadius: 5,
+    },
+    errorButtonText: {
+      color: Colors.WHITE,
+      fontSize: 16,
+      fontWeight: 'bold',
+    },
+  });
 
   useFocusEffect(
     React.useCallback(() => {
-      // Reset animation to 0 opacity every time the screen is focused
       fadeAnim.setValue(0);
-
-      // Start fade-in animation when component is focused
       Animated.timing(fadeAnim, {
-        toValue: 1, // Animate to full opacity
-        duration: 1000, // Duration of animation in milliseconds
-        useNativeDriver: true, // Use native driver for better performance
+        toValue: 1,
+        duration: 1000,
+        useNativeDriver: true,
       }).start();
     }, [fadeAnim])
   );
@@ -167,10 +300,19 @@ function ProfileComponent() {
   return (
     <Animated.View style={[styles.container, { opacity: fadeAnim }]}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color={Colors.WHITE} />
+        <View style={styles.headerLeft}>
+          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+            <Ionicons name="arrow-back" size={24} color={Colors.WHITE} />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Profile</Text>
+        </View>
+        <TouchableOpacity onPress={toggleTheme}>
+          <Ionicons
+            name={isDark ? 'sunny-outline' : 'moon-outline'}
+            size={24}
+            color={Colors.WHITE}
+          />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Profile</Text>
       </View>
 
       <View style={styles.content}>
@@ -203,124 +345,3 @@ function ProfileComponent() {
     </Animated.View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: Colors.BACKGROUND,
-  },
-  header: {
-    backgroundColor: Colors.PRIMARY,
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 20,
-    paddingTop: 40,
-  },
-  backButton: {
-    marginRight: 15,
-  },
-  headerTitle: {
-    color: Colors.WHITE,
-    fontSize: 20,
-    fontWeight: 'bold',
-  },
-  content: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
-  },
-  profileHeader: {
-    alignItems: 'center',
-    marginBottom: 30,
-  },
-  profileImage: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    marginBottom: 20,
-    borderColor: Colors.PRIMARY,
-    borderWidth: 2,
-  },
-  profileName: {
-    fontSize: 26,
-    fontWeight: 'bold',
-    marginBottom: 5,
-    color: Colors.TEXT,
-  },
-  profileEmail: {
-    fontSize: 16,
-    color: Colors.TEXT,
-  },
-  balanceContainer: {
-    backgroundColor: Colors.PRIMARY,
-    padding: 20,
-    borderRadius: 10,
-    alignItems: 'center',
-    width: '100%',
-    marginBottom: 30,
-  },
-  balanceTitle: {
-    color: Colors.WHITE,
-    fontSize: 18,
-    marginBottom: 10,
-  },
-  balanceAmount: {
-    color: Colors.WHITE,
-    fontSize: 32,
-    fontWeight: 'bold',
-  },
-  button: {
-    flexDirection: 'row',
-    backgroundColor: Colors.SECONDARY,
-    padding: 15,
-    borderRadius: 10,
-    alignItems: 'center',
-    width: '100%',
-    marginBottom: 15,
-  },
-  deleteButton: {
-    backgroundColor: Colors.DANGER,
-  },
-  buttonText: {
-    color: Colors.WHITE,
-    marginLeft: 10,
-    fontSize: 18,
-    fontWeight: 'bold',
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: Colors.BACKGROUND,
-  },
-  errorContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: Colors.BACKGROUND,
-    padding: 20,
-  },
-  errorTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: Colors.DANGER,
-    marginBottom: 10,
-  },
-  errorMessage: {
-    fontSize: 16,
-    color: Colors.TEXT,
-    textAlign: 'center',
-    marginBottom: 20,
-  },
-  errorButton: {
-    backgroundColor: Colors.PRIMARY,
-    padding: 10,
-    borderRadius: 5,
-  },
-  errorButtonText: {
-    color: Colors.WHITE,
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-});
